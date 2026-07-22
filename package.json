@@ -9,9 +9,12 @@
 		"directus-extension",
 		"directus-extension-bundle",
 		"system-fields",
+		"fields",
 		"files",
 		"users",
 		"field-order",
+		"fields",
+		"order",
 		"roles",
 		"policies"
 	],
