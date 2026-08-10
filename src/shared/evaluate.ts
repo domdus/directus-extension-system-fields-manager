@@ -1,4 +1,3 @@
-import { DEFAULT_FIELDS } from './catalogs';
 import {
 	EMPTY_SYSTEM_FIELDS,
 	FILE_PREVIEW_FIELD,
@@ -244,13 +243,291 @@ export function applyFieldLayout(
 	return [...configured, ...rest];
 }
 
-export function createDefaultLayout(collection: SupportedCollection, id?: string): CollectionFieldLayout {
+export function createDefaultLayout(
+	collection: SupportedCollection,
+	schemaFields: SchemaFieldInfo[] = [],
+	id?: string,
+): CollectionFieldLayout {
 	return {
 		id: id || `${collection}-default`,
 		roles: [],
 		policies: [],
-		fields: DEFAULT_FIELDS[collection].map((entry) => ({ ...entry })),
+		fields: layoutFieldsFromSchema(collection, schemaFields),
 	};
+}
+
+/** Live collection field info used to build / merge layouts. */
+export type SchemaFieldInfo = {
+	field: string;
+	width?: FieldWidth | string | null;
+	hidden?: boolean | null;
+	special?: string[] | null;
+	interface?: string | null;
+	sort?: number | null;
+	/** Parent group field name when nested inside a Directus group */
+	group?: string | null;
+	/** Display name from Directus field meta / translations */
+	name?: string | null;
+};
+
+/** Fields that exist in schema but are never part of the Studio item form. */
+const SKIP_SCHEMA_FIELDS = new Set(['auth_data']);
+
+/** Alias/no-data fields that still appear as form chrome (groups, dividers, notices). */
+export function isFormChromeField(info: Pick<SchemaFieldInfo, 'interface' | 'special'> | null | undefined): boolean {
+	if (!info) return false;
+	const special = Array.isArray(info.special) ? info.special.map(String) : [];
+	const iface = String(info.interface || '');
+
+	if (special.includes('group')) return true;
+	if (iface.startsWith('group')) return true;
+	if (iface.startsWith('presentation-')) return true;
+
+	return false;
+}
+
+export function isGroupField(info: Pick<SchemaFieldInfo, 'interface' | 'special'> | null | undefined): boolean {
+	if (!info) return false;
+	const special = Array.isArray(info.special) ? info.special.map(String) : [];
+	const iface = String(info.interface || '');
+	return special.includes('group') || iface.startsWith('group');
+}
+
+export type LayoutTreeNode = {
+	entry: FieldLayoutEntry;
+	children?: LayoutTreeNode[];
+};
+
+/**
+ * Nest Directus group children under their parent for Data-Model-style drag UI.
+ * Flat order is preserved: group, then its children, then the next root field.
+ */
+export function buildLayoutTree(
+	fields: FieldLayoutEntry[],
+	schemaFields: SchemaFieldInfo[],
+): LayoutTreeNode[] {
+	const byName = new Map(schemaFields.map((info) => [info.field, info]));
+	const groupNames = new Set(
+		schemaFields.filter((info) => isGroupField(info)).map((info) => info.field),
+	);
+
+	const childrenByGroup = new Map<string, FieldLayoutEntry[]>();
+	const roots: FieldLayoutEntry[] = [];
+
+	for (const entry of fields || []) {
+		const info = byName.get(entry.field);
+		const parent = info?.group || null;
+
+		if (parent && groupNames.has(parent)) {
+			if (!childrenByGroup.has(parent)) childrenByGroup.set(parent, []);
+			childrenByGroup.get(parent)!.push(entry);
+			continue;
+		}
+
+		roots.push(entry);
+	}
+
+	return roots.map((entry) => {
+		if (!groupNames.has(entry.field)) {
+			return { entry };
+		}
+
+		return {
+			entry,
+			children: (childrenByGroup.get(entry.field) || []).map((child) => ({ entry: child })),
+		};
+	});
+}
+
+export function flattenLayoutTree(tree: LayoutTreeNode[]): FieldLayoutEntry[] {
+	const result: FieldLayoutEntry[] = [];
+
+	for (const node of tree || []) {
+		if (!node?.entry?.field) continue;
+		result.push({ ...node.entry });
+		for (const child of node.children || []) {
+			if (!child?.entry?.field) continue;
+			result.push({ ...child.entry });
+		}
+	}
+
+	return result;
+}
+
+export function interfaceLabel(info: SchemaFieldInfo | null | undefined): string {
+	if (!info) return '';
+	const iface = String(info.interface || '');
+	if (!iface) return '';
+	if (iface === 'presentation-divider') return 'Divider';
+	if (iface === 'group-detail') return 'Detail Group';
+	if (iface === 'group-raw') return 'Raw Group';
+	if (iface === 'group-tabs') return 'Tab Group';
+	if (iface.startsWith('group')) return 'Group';
+	if (iface === 'input') return 'Input';
+	if (iface === 'input-multiline') return 'Textarea';
+	if (iface === 'input-hash') return 'Hash';
+	if (iface === 'select-dropdown') return 'Dropdown';
+	if (iface === 'select-dropdown-m2o') return 'Many to One';
+	if (iface === 'list-m2m') return 'Many to Many';
+	if (iface === 'boolean') return 'Toggle';
+	if (iface === 'tags') return 'Tags';
+	if (iface === 'file' || iface === 'file-image') return 'File';
+	if (iface === 'system-language') return 'Language';
+	if (iface === 'system-theme') return 'Theme';
+	if (iface === 'system-theme-overrides') return 'Theme Overrides';
+	if (iface === 'system-token') return 'Token';
+	if (iface === 'system-mfa-setup') return 'mfa-setup';
+	return iface
+		.replace(/^input-/, '')
+		.replace(/^system-/, '')
+		.replace(/-/g, ' ')
+		.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function isManageableSchemaField(info: SchemaFieldInfo): boolean {
+	const name = String(info.field || '').trim();
+	if (!name || name === FILE_PREVIEW_FIELD) return false;
+	if (SKIP_SCHEMA_FIELDS.has(name)) return false;
+
+	const special = Array.isArray(info.special) ? info.special.map(String) : [];
+
+	// `no-data` covers both junk aliases and real form chrome (groups / dividers).
+	if (special.includes('no-data') && !isFormChromeField(info)) return false;
+
+	return true;
+}
+
+export function schemaFieldFromRaw(raw: unknown): SchemaFieldInfo | null {
+	if (!raw || typeof raw !== 'object') return null;
+	const row = raw as Record<string, any>;
+	const field = String(row.field || row.meta?.field || '').trim();
+	if (!field) return null;
+
+	const meta = row.meta && typeof row.meta === 'object' ? row.meta : row;
+	const special = Array.isArray(meta?.special)
+		? meta.special.map(String)
+		: Array.isArray(row.special)
+			? row.special.map(String)
+			: null;
+
+	let name: string | null = null;
+	if (typeof meta?.name === 'string' && meta.name.trim()) name = meta.name.trim();
+	else if (Array.isArray(meta?.translations)) {
+		const en = meta.translations.find(
+			(t: any) => t?.language === 'en-US' || t?.language === 'en-GB' || t?.language === 'en',
+		);
+		const pick = en || meta.translations[0];
+		if (typeof pick?.translation === 'string' && pick.translation.trim()) {
+			name = pick.translation.trim();
+		}
+	}
+
+	const group =
+		typeof meta?.group === 'string' && meta.group.trim()
+			? meta.group.trim()
+			: typeof row.group === 'string' && row.group.trim()
+				? row.group.trim()
+				: null;
+
+	return {
+		field,
+		width: meta?.width ?? row.width ?? null,
+		hidden: meta?.hidden ?? row.hidden ?? null,
+		special,
+		interface: meta?.interface ?? row.interface ?? null,
+		sort: typeof meta?.sort === 'number' ? meta.sort : typeof row.sort === 'number' ? row.sort : null,
+		group,
+		name,
+	};
+}
+
+function entryFromSchema(info: SchemaFieldInfo): FieldLayoutEntry {
+	return {
+		field: info.field,
+		show: info.hidden !== true,
+		width: normalizeWidth(info.width),
+	};
+}
+
+/** Build a fresh field list from live schema (+ virtual File Preview on Files). */
+export function layoutFieldsFromSchema(
+	collection: SupportedCollection,
+	schemaFields: SchemaFieldInfo[],
+): FieldLayoutEntry[] {
+	const sorted = [...(schemaFields || [])]
+		.filter(isManageableSchemaField)
+		.sort((a, b) => {
+			const as = a.sort == null ? Number.POSITIVE_INFINITY : a.sort;
+			const bs = b.sort == null ? Number.POSITIVE_INFINITY : b.sort;
+			if (as !== bs) return as - bs;
+			return a.field.localeCompare(b.field);
+		});
+
+	const fields = sorted.map(entryFromSchema);
+
+	if (collection === 'directus_files') {
+		fields.unshift({ field: FILE_PREVIEW_FIELD, show: true, width: 'full' });
+	}
+
+	return fields;
+}
+
+/**
+ * Keep existing layout entries (order + settings), drop fields removed from schema,
+ * append any new schema fields, and ensure File Preview exists on Files layouts.
+ */
+export function mergeLayoutWithSchemaFields(
+	collection: SupportedCollection,
+	existing: FieldLayoutEntry[],
+	schemaFields: SchemaFieldInfo[],
+): FieldLayoutEntry[] {
+	const manageable = (schemaFields || []).filter(isManageableSchemaField);
+	const schemaNames = new Set(manageable.map((info) => info.field));
+	const pruneUnknown = schemaNames.size > 0;
+
+	const seen = new Set<string>();
+	const result: FieldLayoutEntry[] = [];
+
+	for (const entry of existing || []) {
+		const field = String(entry?.field || '').trim();
+		if (!field || seen.has(field)) continue;
+
+		if (field === FILE_PREVIEW_FIELD) {
+			if (collection !== 'directus_files') continue;
+			seen.add(field);
+			result.push({ field, show: entry.show !== false, width: 'full' });
+			continue;
+		}
+
+		if (pruneUnknown && !schemaNames.has(field)) continue;
+
+		seen.add(field);
+		result.push({
+			field,
+			show: entry.show !== false,
+			width: normalizeWidth(entry.width),
+		});
+	}
+
+	for (const info of manageable) {
+		if (seen.has(info.field)) continue;
+		seen.add(info.field);
+		result.push(entryFromSchema(info));
+	}
+
+	if (collection === 'directus_files' && !seen.has(FILE_PREVIEW_FIELD)) {
+		result.unshift({ field: FILE_PREVIEW_FIELD, show: true, width: 'full' });
+	}
+
+	return result;
+}
+
+export function createDefaultLayoutWithSchema(
+	collection: SupportedCollection,
+	schemaFields: SchemaFieldInfo[],
+	id?: string,
+): CollectionFieldLayout {
+	return createDefaultLayout(collection, schemaFields, id);
 }
 
 export { EMPTY_SYSTEM_FIELDS };

@@ -1,20 +1,20 @@
 <template>
 	<v-list nav>
-		<v-list-item to="/system-fields-manager/files">
-			<v-list-item-icon>
-				<v-icon name="folder" />
-			</v-list-item-icon>
-			<v-list-item-content>
-				<v-text-overflow text="Files" />
-			</v-list-item-content>
-		</v-list-item>
-
 		<v-list-item to="/system-fields-manager/users">
 			<v-list-item-icon>
 				<v-icon name="people_alt" />
 			</v-list-item-icon>
 			<v-list-item-content>
 				<v-text-overflow text="Users" />
+			</v-list-item-content>
+		</v-list-item>
+
+		<v-list-item to="/system-fields-manager/files">
+			<v-list-item-icon>
+				<v-icon name="folder" />
+			</v-list-item-icon>
+			<v-list-item-content>
+				<v-text-overflow text="Files" />
 			</v-list-item-content>
 		</v-list-item>
 

@@ -1,5 +1,5 @@
 import { defineHook } from '@directus/extensions-sdk';
-import { buildPreviewHints, normalizeConfig, resolveLayout } from '../shared/evaluate';
+import { buildPreviewHints, mergeLayoutWithSchemaFields, normalizeConfig, resolveLayout, schemaFieldFromRaw, type SchemaFieldInfo } from '../shared/evaluate';
 import {
 	SYSTEM_FIELDS_FIELD,
 	type FieldLayoutEntry,
@@ -158,13 +158,34 @@ function getSettingsRows(payload: unknown): Record<string, any>[] | null {
 	return null;
 }
 
-function layoutFields(layout: ReturnType<typeof resolveLayout>): FieldLayoutEntry[] | null {
+async function readCollectionSchemaFields(
+	services: any,
+	getSchema: () => Promise<any>,
+	collection: 'directus_files' | 'directus_users',
+): Promise<SchemaFieldInfo[]> {
+	try {
+		const schema = await getSchema();
+		const { FieldsService } = services;
+		const fieldsService = new FieldsService({
+			schema,
+			accountability: { admin: true },
+		});
+		const rows = await fieldsService.readAll(collection);
+		return (Array.isArray(rows) ? rows : [])
+			.map((row: unknown) => schemaFieldFromRaw(row))
+			.filter((entry: SchemaFieldInfo | null): entry is SchemaFieldInfo => Boolean(entry));
+	} catch {
+		return [];
+	}
+}
+
+function appliedLayoutFields(
+	collection: 'directus_files' | 'directus_users',
+	layout: ReturnType<typeof resolveLayout>,
+	schemaFields: SchemaFieldInfo[],
+): FieldLayoutEntry[] | null {
 	if (!layout) return null;
-	return layout.fields.map((entry) => ({
-		field: entry.field,
-		show: entry.show !== false,
-		width: entry.width || 'full',
-	}));
+	return mergeLayoutWithSchemaFields(collection, layout.fields || [], schemaFields);
 }
 
 /**
@@ -174,17 +195,12 @@ function layoutFields(layout: ReturnType<typeof resolveLayout>): FieldLayoutEntr
  */
 export default defineHook(({ filter, init, action }, { services, database, getSchema, logger }) => {
 	let fieldReady: Promise<void> | null = null;
-	let fieldEnsured = false;
 
 	const ensureOnce = () => {
 		if (!fieldReady) {
-			fieldReady = ensureSystemFieldsField(services, getSchema, database, logger)
-				.catch(() => {
-					/* errors logged inside ensure */
-				})
-				.finally(() => {
-					fieldEnsured = true;
-				});
+			fieldReady = ensureSystemFieldsField(services, getSchema, database, logger).catch(() => {
+				/* errors logged inside ensure */
+			});
 		}
 		return fieldReady;
 	};
@@ -198,10 +214,8 @@ export default defineHook(({ filter, init, action }, { services, database, getSc
 	});
 
 	filter('settings.read', async (payload: unknown, _meta: unknown, context: any) => {
-		if (!fieldEnsured) {
-			void ensureOnce();
-			return payload;
-		}
+		// Always wait — skipping on a race leaves non-admins without `applied` layouts.
+		await ensureOnce();
 
 		const accountability: Accountability | null = context?.accountability ?? null;
 		if (accountability?.admin) {
@@ -227,6 +241,14 @@ export default defineHook(({ filter, init, action }, { services, database, getSc
 		const filesLayout = resolveLayout(config, 'directus_files', access);
 		const usersLayout = resolveLayout(config, 'directus_users', access);
 
+		const [filesSchema, usersSchema] = await Promise.all([
+			filesLayout ? readCollectionSchemaFields(services, getSchema, 'directus_files') : Promise.resolve([]),
+			usersLayout ? readCollectionSchemaFields(services, getSchema, 'directus_users') : Promise.resolve([]),
+		]);
+
+		const appliedFiles = appliedLayoutFields('directus_files', filesLayout, filesSchema);
+		const appliedUsers = appliedLayoutFields('directus_users', usersLayout, usersSchema);
+
 		for (const row of rows) {
 			if (!row || typeof row !== 'object') continue;
 
@@ -237,10 +259,17 @@ export default defineHook(({ filter, init, action }, { services, database, getSc
 					directus_users: [],
 				},
 				applied: {
-					directus_files: layoutFields(filesLayout),
-					directus_users: layoutFields(usersLayout),
+					directus_files: appliedFiles,
+					directus_users: appliedUsers,
 				},
-				preview: buildPreviewHints(filesLayout),
+				preview: buildPreviewHints(
+					filesLayout
+						? {
+								...filesLayout,
+								fields: appliedFiles || filesLayout.fields,
+							}
+						: null,
+				),
 			} satisfies SystemFieldsConfig;
 		}
 

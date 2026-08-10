@@ -1,8 +1,20 @@
 import { useApi, useStores } from '@directus/extensions-sdk';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { fieldLabel } from '../../shared/catalogs';
-import { createDefaultLayout, normalizeConfig, serializeConfig } from '../../shared/evaluate';
+import { fieldLabel as defaultFieldLabel } from '../../shared/catalogs';
+import {
+	buildLayoutTree,
+	createDefaultLayoutWithSchema,
+	flattenLayoutTree,
+	interfaceLabel,
+	isGroupField,
+	mergeLayoutWithSchemaFields,
+	schemaFieldFromRaw,
+	serializeConfig,
+	normalizeConfig,
+	type LayoutTreeNode,
+	type SchemaFieldInfo,
+} from '../../shared/evaluate';
 import { userHasAdminAccess } from '../../shared/admin';
 import {
 	EMPTY_SYSTEM_FIELDS,
@@ -51,6 +63,15 @@ const policyOptions = ref<{ text: string; value: string }[]>([]);
 
 const layoutEditing = ref<{ collection: SupportedCollection; id: string } | null>(null);
 const layoutDraft = ref<CollectionFieldLayout | null>(null);
+const layoutTree = ref<LayoutTreeNode[]>([]);
+const schemaFieldsByCollection = ref<Record<SupportedCollection, SchemaFieldInfo[]>>({
+	directus_files: [],
+	directus_users: [],
+});
+const schemaLabelsByCollection = ref<Record<SupportedCollection, Record<string, string>>>({
+	directus_files: {},
+	directus_users: {},
+});
 
 let loadPromise: Promise<void> | null = null;
 
@@ -62,6 +83,89 @@ export function useSystemFields() {
 	const userStore = useUserStore();
 
 	const hasEdits = computed(() => !isEqual(serializeConfig(config.value), serializeConfig(initialConfig.value)));
+
+	function fieldLabel(field: string, collection?: SupportedCollection): string {
+		const coll = collection || layoutEditing.value?.collection;
+		const fromSchema = coll ? schemaLabelsByCollection.value[coll]?.[field] : null;
+		return fromSchema || defaultFieldLabel(field);
+	}
+
+	function schemaInfo(field: string, collection?: SupportedCollection): SchemaFieldInfo | null {
+		const coll = collection || layoutEditing.value?.collection;
+		if (!coll) return null;
+		return (schemaFieldsByCollection.value[coll] || []).find((entry) => entry.field === field) || null;
+	}
+
+	function fieldInterfaceLabel(field: string, collection?: SupportedCollection): string {
+		return interfaceLabel(schemaInfo(field, collection));
+	}
+
+	function rebuildLayoutTree() {
+		if (!layoutDraft.value || !layoutEditing.value) {
+			layoutTree.value = [];
+			return;
+		}
+		const schema = schemaFieldsByCollection.value[layoutEditing.value.collection] || [];
+		layoutTree.value = buildLayoutTree(layoutDraft.value.fields || [], schema);
+	}
+
+	function syncTreeToDraft() {
+		if (!layoutDraft.value) return;
+		layoutDraft.value = {
+			...layoutDraft.value,
+			fields: flattenLayoutTree(layoutTree.value),
+		};
+	}
+
+	function updateTreeEntry(field: string, patch: Partial<FieldLayoutEntry>) {
+		const visit = (nodes: LayoutTreeNode[]): boolean => {
+			for (const node of nodes) {
+				if (node.entry.field === field) {
+					node.entry = { ...node.entry, ...patch };
+					return true;
+				}
+				if (node.children && visit(node.children)) return true;
+			}
+			return false;
+		};
+		visit(layoutTree.value);
+		syncTreeToDraft();
+	}
+
+	async function loadSchemaFields(collection: SupportedCollection): Promise<SchemaFieldInfo[]> {
+		try {
+			const response = await api.get(`/fields/${collection}`);
+			const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+			const parsed = rows
+				.map((row: unknown) => schemaFieldFromRaw(row))
+				.filter((entry: SchemaFieldInfo | null): entry is SchemaFieldInfo => Boolean(entry));
+
+			schemaFieldsByCollection.value = {
+				...schemaFieldsByCollection.value,
+				[collection]: parsed,
+			};
+
+			const labels: Record<string, string> = {};
+			for (const entry of parsed) {
+				if (entry.name) labels[entry.field] = entry.name;
+			}
+			schemaLabelsByCollection.value = {
+				...schemaLabelsByCollection.value,
+				[collection]: labels,
+			};
+
+			return parsed;
+		} catch {
+			return schemaFieldsByCollection.value[collection] || [];
+		}
+	}
+
+	async function ensureSchemaFields(collection: SupportedCollection, force = false): Promise<SchemaFieldInfo[]> {
+		if (!force && schemaFieldsByCollection.value[collection]?.length) {
+			return schemaFieldsByCollection.value[collection];
+		}
+		return loadSchemaFields(collection);
+	}
 
 	function layoutsFor(collection: SupportedCollection) {
 		return computed<CollectionFieldLayout[]>({
@@ -94,8 +198,9 @@ export function useSystemFields() {
 		return `${roleCount} role(s) · ${policyCount} polic(ies) · ${visible}/${fieldCount} fields`;
 	}
 
-	function addLayout(collection: SupportedCollection) {
-		const next = createDefaultLayout(collection, crypto.randomUUID());
+	async function addLayout(collection: SupportedCollection) {
+		const schemaFields = await ensureSchemaFields(collection, true);
+		const next = createDefaultLayoutWithSchema(collection, schemaFields, crypto.randomUUID());
 		const list = [...(config.value.collections[collection] || []), next];
 		config.value = {
 			...config.value,
@@ -105,7 +210,7 @@ export function useSystemFields() {
 				[collection]: list,
 			},
 		};
-		openLayoutEditor(collection, next.id);
+		await openLayoutEditor(collection, next.id);
 	}
 
 	function removeLayout(collection: SupportedCollection, id: string) {
@@ -123,16 +228,22 @@ export function useSystemFields() {
 		}
 	}
 
-	function openLayoutEditor(collection: SupportedCollection, id: string) {
+	async function openLayoutEditor(collection: SupportedCollection, id: string) {
 		const existing = (config.value.collections[collection] || []).find((layout) => layout.id === id);
 		if (!existing) return;
+		const schemaFields = await ensureSchemaFields(collection, true);
 		layoutEditing.value = { collection, id };
-		layoutDraft.value = cloneDeep(existing);
+		layoutDraft.value = {
+			...cloneDeep(existing),
+			fields: mergeLayoutWithSchemaFields(collection, existing.fields || [], schemaFields),
+		};
+		rebuildLayoutTree();
 	}
 
 	function closeLayoutEditor() {
 		layoutEditing.value = null;
 		layoutDraft.value = null;
+		layoutTree.value = [];
 	}
 
 	function onLayoutDrawerToggle(open: boolean) {
@@ -141,6 +252,7 @@ export function useSystemFields() {
 
 	function saveLayoutDraft() {
 		if (!layoutEditing.value || !layoutDraft.value) return;
+		syncTreeToDraft();
 
 		const { collection, id } = layoutEditing.value;
 		const next: CollectionFieldLayout = {
@@ -172,33 +284,23 @@ export function useSystemFields() {
 	}
 
 	function setDraftFieldShow(field: string, show: boolean) {
-		if (!layoutDraft.value) return;
-		layoutDraft.value = {
-			...layoutDraft.value,
-			fields: layoutDraft.value.fields.map((entry) =>
-				entry.field === field ? { ...entry, show: Boolean(show) } : entry,
-			),
-		};
+		updateTreeEntry(field, { show: Boolean(show) });
 	}
 
 	function setDraftFieldWidth(field: string, width: FieldWidth) {
-		if (!layoutDraft.value) return;
 		if (field === FILE_PREVIEW_FIELD) return;
-		layoutDraft.value = {
-			...layoutDraft.value,
-			fields: layoutDraft.value.fields.map((entry) =>
-				entry.field === field ? { ...entry, width } : entry,
-			),
-		};
+		updateTreeEntry(field, { width });
 	}
 
-	function resetDraftFieldsToDefaults() {
+	async function resetDraftFieldsToDefaults() {
 		if (!layoutEditing.value || !layoutDraft.value) return;
-		const defaults = createDefaultLayout(layoutEditing.value.collection);
+		const schemaFields = await ensureSchemaFields(layoutEditing.value.collection, true);
+		const defaults = createDefaultLayoutWithSchema(layoutEditing.value.collection, schemaFields);
 		layoutDraft.value = {
 			...layoutDraft.value,
 			fields: defaults.fields.map((entry) => ({ ...entry })),
 		};
+		rebuildLayoutTree();
 	}
 
 	async function loadRolesAndPolicies() {
@@ -245,7 +347,11 @@ export function useSystemFields() {
 			config.value = next;
 			initialConfig.value = cloneDeep(next);
 
-			await loadRolesAndPolicies();
+			await Promise.all([
+				loadRolesAndPolicies(),
+				loadSchemaFields('directus_files'),
+				loadSchemaFields('directus_users'),
+			]);
 		} finally {
 			loading.value = false;
 		}
@@ -402,9 +508,14 @@ export function useSystemFields() {
 		policyOptions,
 		layoutEditing,
 		layoutDraft,
+		layoutTree,
 		layoutsFor,
 		layoutSummary,
 		fieldLabel,
+		fieldInterfaceLabel,
+		schemaInfo,
+		isGroupField,
+		syncTreeToDraft,
 		addLayout,
 		removeLayout,
 		openLayoutEditor,

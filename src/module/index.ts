@@ -15,7 +15,7 @@ export default defineModule({
 	routes: [
 		{
 			path: '',
-			redirect: '/system-fields-manager/files',
+			redirect: '/system-fields-manager/users',
 		},
 		{
 			path: 'files',

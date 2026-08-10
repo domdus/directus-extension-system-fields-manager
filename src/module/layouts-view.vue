@@ -1,7 +1,7 @@
 <template>
 	<private-view :title="title" :icon="icon">
 		<template #headline>
-			<v-breadcrumb :items="[{ name: 'System Fields Manager', to: '/system-fields-manager/files' }]" />
+			<v-breadcrumb :items="[{ name: 'System Fields Manager', to: '/system-fields-manager/users' }]" />
 		</template>
 
 		<template #navigation>
@@ -63,7 +63,13 @@
 					</template>
 				</draggable>
 
-				<v-button class="add-layout" @click="addLayout(collection)">Add Layout</v-button>
+				<div class="layout-actions">
+					<v-button @click="addLayout(collection)">Add Layout</v-button>
+					<v-button secondary :to="dataModelPath">
+						<v-icon name="database" left />
+						Data Model
+					</v-button>
+				</div>
 			</template>
 		</div>
 
@@ -116,19 +122,42 @@
 				</div>
 
 				<draggable
-					v-model="layoutDraft.fields"
-					item-key="field"
-					handle=".drag-handle"
+					v-model="layoutTree"
+					item-key="entry.field"
+					handle=".group-drag-handle, .field-select:not(.group) > .field .field-drag-handle"
 					:animation="150"
 					class="field-grid"
+					@end="syncTreeToDraft"
 				>
 					<template #item="{ element }">
 						<field-layout-row
-							:entry="element"
-							:label="fieldLabel(element.field)"
-							@toggle-show="setDraftFieldShow(element.field, element.show === false)"
-							@set-width="setDraftFieldWidth(element.field, $event)"
-						/>
+							:entry="element.entry"
+							:label="fieldLabel(element.entry.field)"
+							:interface-name="fieldInterfaceLabel(element.entry.field)"
+							:is-group="Boolean(element.children)"
+							@toggle-show="setDraftFieldShow(element.entry.field, element.entry.show === false)"
+							@set-width="setDraftFieldWidth(element.entry.field, $event)"
+						>
+							<draggable
+								v-if="element.children"
+								v-model="element.children"
+								item-key="entry.field"
+								handle=".field-drag-handle"
+								:animation="150"
+								class="field-grid nested-children"
+								@end="syncTreeToDraft"
+							>
+								<template #item="{ element: child }">
+									<field-layout-row
+										:entry="child.entry"
+										:label="fieldLabel(child.entry.field)"
+										:interface-name="fieldInterfaceLabel(child.entry.field)"
+										@toggle-show="setDraftFieldShow(child.entry.field, child.entry.show === false)"
+										@set-width="setDraftFieldWidth(child.entry.field, $event)"
+									/>
+								</template>
+							</draggable>
+						</field-layout-row>
 					</template>
 				</draggable>
 			</div>
@@ -162,9 +191,12 @@ const {
 	policyOptions,
 	layoutEditing,
 	layoutDraft,
+	layoutTree,
 	layoutsFor,
 	layoutSummary,
 	fieldLabel,
+	fieldInterfaceLabel,
+	syncTreeToDraft,
 	addLayout,
 	removeLayout,
 	openLayoutEditor,
@@ -179,6 +211,8 @@ const {
 } = useSystemFields();
 
 const layouts = layoutsFor(props.collection);
+
+const dataModelPath = computed(() => `/settings/data-model/${props.collection}`);
 
 const isEditingThis = computed(
 	() => layoutEditing.value?.collection === props.collection && layoutEditing.value !== null,
@@ -209,7 +243,7 @@ onMounted(() => {
 .hint {
 	margin: 0 0 24px;
 	line-height: 1.55;
-	color: var(--theme--foreground);
+	color: var(--theme--foreground, var(--foreground-normal, inherit));
 }
 
 .loading {
@@ -236,7 +270,7 @@ onMounted(() => {
 
 .drag-handle {
 	cursor: grab;
-	color: var(--theme--foreground-subdued);
+	color: var(--theme--foreground-subdued, var(--foreground-subdued, #a2b5cd));
 }
 
 .info {
@@ -250,7 +284,7 @@ onMounted(() => {
 
 .meta {
 	font-size: 12px;
-	color: var(--theme--foreground-subdued);
+	color: var(--theme--foreground-subdued, var(--foreground-subdued, #a2b5cd));
 }
 
 .row-actions {
@@ -260,7 +294,11 @@ onMounted(() => {
 	flex-shrink: 0;
 }
 
-.add-layout {
+.layout-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
 	margin-top: 16px;
 }
 
@@ -295,5 +333,10 @@ onMounted(() => {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 	padding-block-end: 0.5rem;
+}
+
+.nested-children {
+	grid-column: 1 / -1;
+	padding-block-end: 0;
 }
 </style>

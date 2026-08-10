@@ -1,7 +1,7 @@
 <template>
 	<private-view title="Settings" icon="settings">
 		<template #headline>
-			<v-breadcrumb :items="[{ name: 'System Fields Manager', to: '/system-fields-manager/files' }]" />
+			<v-breadcrumb :items="[{ name: 'System Fields Manager', to: '/system-fields-manager/users' }]" />
 		</template>
 
 		<template #navigation>
