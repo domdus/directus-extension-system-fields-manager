@@ -1,6 +1,6 @@
 # System Fields Manager
 
-Simplify the **Files** and **Users** forms in Directus for non-admin roles — choose which fields appear, in what order, and at what width.
+Simplify the **directus_files** and **directus_users** forms in Directus for non-admin roles — choose which fields appear, in what order, and at what width.
 
 ## Overview
 
