@@ -9,13 +9,13 @@ import UsersView from './users-view.vue';
 installFilePreviewEnforcer();
 
 export default defineModule({
-	id: 'system-fields',
-	name: 'System Fields',
+	id: 'system-fields-manager',
+	name: 'System Fields Manager',
 	icon: 'tune',
 	routes: [
 		{
 			path: '',
-			redirect: '/system-fields/files',
+			redirect: '/system-fields-manager/files',
 		},
 		{
 			path: 'files',

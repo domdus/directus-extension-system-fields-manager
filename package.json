@@ -1,5 +1,5 @@
 {
-	"name": "directus-extension-manage-system-fields",
+	"name": "directus-extension-system-fields-manager",
 	"description": "Configure visibility, order, and width of system_fields on Files and Users item forms by role and policy",
 	"icon": "tune",
 	"version": "1.0.1",
@@ -8,6 +8,7 @@
 		"directus",
 		"directus-extension",
 		"directus-extension-bundle",
+		"system-fields-manager",
 		"system-fields",
 		"fields",
 		"files",
@@ -25,12 +26,12 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/domdus/directus-extension-manage-system-fields.git"
+		"url": "git+https://github.com/domdus/directus-extension-system-fields-manager.git"
 	},
 	"bugs": {
-		"url": "https://github.com/domdus/directus-extension-manage-system-fields/issues"
+		"url": "https://github.com/domdus/directus-extension-system-fields-manager/issues"
 	},
-	"homepage": "https://github.com/domdus/directus-extension-manage-system-fields#readme",
+	"homepage": "https://github.com/domdus/directus-extension-system-fields-manager#readme",
 	"directus:extension": {
 		"type": "bundle",
 		"path": {
@@ -40,12 +41,12 @@
 		"entries": [
 			{
 				"type": "module",
-				"name": "system-fields",
+				"name": "system-fields-manager-module",
 				"source": "src/module/index.ts"
 			},
 			{
 				"type": "hook",
-				"name": "system-fields-hook",
+				"name": "system-fields-manager-hook",
 				"source": "src/hook/index.ts"
 			}
 		],

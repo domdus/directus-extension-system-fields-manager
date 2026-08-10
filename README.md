@@ -1,18 +1,18 @@
-# Manage System Fields
+# System Fields Manager
 
 Simplify the **Files** and **Users** item forms in Directus for non-admin roles — choose which fields appear, in what order, and at what width.
 
-Open **System Fields** from the left bar (**admins only**). Layouts only affect **non-admin** users. **Administrators always see the default Studio forms** and are never restricted by these rules.
+Open **System Fields Manager** from the left bar (**admins only**). Layouts only affect **non-admin** users. **Administrators always see the default Studio forms** and are never restricted by these rules.
 
 > **Important:** This changes how the Data Studio *looks*. It does **not** replace Directus permissions. People may still read or write fields through the API if their access control allows it. Use Access Control for real security; use this extension to clean up the editing experience.
 
 ## Overview
 
-<img alt="System Fields — Users layout editor" src="https://raw.githubusercontent.com/domdus/directus-extension-manage-system-fields/main/docs/screenshot_user_fields.png" width="800" />
+<img alt="System Fields Manager — Users layout editor" src="https://raw.githubusercontent.com/domdus/directus-extension-system-fields-manager/main/docs/screenshot_user_fields.png" width="800" />
 
 Directus shows many system fields on Files and Users by default (storage details, theme options, tokens, and more). For Editors or other roles that only need a few fields, that can be noisy.
 
-With **System Fields** you define **layouts** per collection:
+With **System Fields Manager** you define **layouts** per collection:
 
 1. Pick which **roles** and/or **policies** the layout applies to  
 2. Drag fields into the order you want  
@@ -26,9 +26,9 @@ Matched users then see a quieter form. Everyone else (and all admins) keep the n
 
 Control the file detail form — including the file preview chrome at the top.
 
-<img alt="System Fields — Files layout editor" src="https://raw.githubusercontent.com/domdus/directus-extension-manage-system-fields/main/docs/screenshot_file_fields.png" width="800" />
+<img alt="System Fields Manager — Files layout editor" src="https://raw.githubusercontent.com/domdus/directus-extension-system-fields-manager/main/docs/screenshot_file_fields.png" width="800" />
 
-<img alt="Files form with a custom field layout" src="https://raw.githubusercontent.com/domdus/directus-extension-manage-system-fields/main/docs/screenshot_file.png" width="800" />
+<img alt="Files form with a custom field layout" src="https://raw.githubusercontent.com/domdus/directus-extension-system-fields-manager/main/docs/screenshot_file.png" width="800" />
 
 - **Reorder** fields on the Files item form  
 - **Show or hide** fields (title, description, tags, storage details, and more)  
@@ -40,7 +40,7 @@ Control the file detail form — including the file preview chrome at the top.
 
 Same idea for the user profile / user edit form.
 
-<img alt="Users form with a custom field layout" src="https://raw.githubusercontent.com/domdus/directus-extension-manage-system-fields/main/docs/screenshot_user.png" width="800" />
+<img alt="Users form with a custom field layout" src="https://raw.githubusercontent.com/domdus/directus-extension-system-fields-manager/main/docs/screenshot_user.png" width="800" />
 
 - **Reorder** fields on the Users item form  
 - **Show or hide** identity, preferences, theming, and admin fields  
@@ -50,7 +50,7 @@ Same idea for the user profile / user edit form.
 
 ### Settings
 
-- **Export / import** your System Fields config as JSON (backup or move between projects)  
+- **Export / import** your System Fields Manager config as JSON (backup or move between projects)  
 - **Remove extension data** cleanly before uninstall (only this extension’s settings — not your files or users)
 
 ## How layouts work
@@ -72,21 +72,21 @@ Requires **Directus 9.26+ through 12.x**.
 ### npm
 
 ```bash
-npm install directus-extension-manage-system-fields
+npm install directus-extension-system-fields-manager
 ```
 
 Place the package in your Directus `extensions` folder (or install into a project that loads extensions from `node_modules`), then restart Directus.
 
 ### Marketplace
 
-Search for **Manage System Fields** in **Settings → Marketplace**. This bundle includes an API hook, so some environments only allow App extensions from the Marketplace — use the npm/manual install below if install is blocked.
+Search for **System Fields Manager** in **Settings → Marketplace**. This bundle includes an API hook, so some environments only allow App extensions from the Marketplace — use the npm/manual install below if install is blocked.
 
 ### Manual Installation
 
 1. Install and build:
 
 ```bash
-cd directus-extension-manage-system-fields
+cd directus-extension-system-fields-manager
 npm install
 npm run build
 ```
@@ -98,14 +98,14 @@ npm run build
 4. In the Data Studio:
 
    1. Open **Settings → Project Settings → Modules**  
-   2. Enable **System Fields**  
-   3. Open **System Fields** from the left bar  
+   2. Enable **System Fields Manager**  
+   3. Open **System Fields Manager** from the left bar  
 
 App users who should receive layouts need **read access to Project Settings** (`directus_settings`) — normal for roles with App Access — so the Studio can load their resolved layout.
 
 ## Getting started
 
-1. Open **System Fields** as an admin.  
+1. Open **System Fields Manager** as an admin.  
 2. Start with **Files** — hide storage/technical fields your Editors don’t need, and place File Preview where you want it.  
 3. Configure **Users** the same way (for example keep name, email, password, status, and role; hide theming and tokens).  
 4. Assign each layout to the right roles/policies; add a catch-all last if you want a default for everyone else.  

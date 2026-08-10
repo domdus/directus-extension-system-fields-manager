@@ -126,21 +126,21 @@ async function ensureSystemFieldsField(services: any, getSchema: () => Promise<a
 					hidden: true,
 					readonly: false,
 					width: 'full',
-					note: 'Managed by System Fields extension. Do not edit manually.',
+					note: 'Managed by System Fields Manager extension. Do not edit manually.',
 				},
 				schema: {},
 			});
 
-			logger?.info?.(`[system-fields] Created directus_settings.${SYSTEM_FIELDS_FIELD}`);
+			logger?.info?.(`[system-fields-manager] Created directus_settings.${SYSTEM_FIELDS_FIELD}`);
 		}
 	} catch (error: any) {
 		const message = String(error?.message || error || '');
 		if (/already exists|duplicate|SQLITE_ERROR/i.test(message)) {
-			logger?.warn?.(`[system-fields] Field ensure skipped: ${message}`);
+			logger?.warn?.(`[system-fields-manager] Field ensure skipped: ${message}`);
 			return;
 		}
 
-		logger?.warn?.(`[system-fields] Could not ensure settings field: ${message}`);
+		logger?.warn?.(`[system-fields-manager] Could not ensure settings field: ${message}`);
 	}
 }
 

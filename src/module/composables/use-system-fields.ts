@@ -341,7 +341,7 @@ export function useSystemFields() {
 		const payload = {
 			...serializeConfig(config.value),
 			exported_at: new Date().toISOString(),
-			extension: 'directus-extension-manage-system-fields',
+			extension: 'directus-extension-system-fields-manager',
 		};
 
 		const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -349,7 +349,7 @@ export function useSystemFields() {
 		const anchor = document.createElement('a');
 		const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 		anchor.href = url;
-		anchor.download = `system-fields-${stamp}.json`;
+		anchor.download = `system-fields-manager-${stamp}.json`;
 		anchor.click();
 		URL.revokeObjectURL(url);
 	}

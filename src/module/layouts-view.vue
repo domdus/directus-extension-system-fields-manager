@@ -1,7 +1,7 @@
 <template>
 	<private-view :title="title" :icon="icon">
 		<template #headline>
-			<v-breadcrumb :items="[{ name: 'System Fields', to: '/system-fields/files' }]" />
+			<v-breadcrumb :items="[{ name: 'System Fields Manager', to: '/system-fields-manager/files' }]" />
 		</template>
 
 		<template #navigation>
