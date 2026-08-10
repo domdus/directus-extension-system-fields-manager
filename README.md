@@ -1,10 +1,6 @@
 # System Fields Manager
 
-Make the **Files** and **Users** screens in Directus simpler for your team — choose which fields they see, in which order, and how wide each one is.
-
-Open **System Fields Manager** from the left bar (**admins only**). These layouts only apply to **non-admin** people. **Administrators always see the normal Directus forms.**
-
-> **Important:** This cleans up what people see while editing. It does **not** replace Directus permissions. Someone might still reach a field through the API if their access allows it. Use Access Control for real security; use this extension to keep day-to-day screens calm and clear.
+Simplify the **Files** and **Users** forms in Directus for non-admin roles — choose which fields appear, in what order, and at what width.
 
 ## Overview
 
@@ -12,13 +8,11 @@ Open **System Fields Manager** from the left bar (**admins only**). These layout
 
 Files and Users come with many built-in fields (storage details, theme options, tokens, and more). For Editors and similar roles that only need a few of them, that can feel noisy.
 
-With **System Fields Manager** you create **layouts**:
+**System Fields Manager** lets you define **layouts** per collection: pick roles and/or policies, drag fields into order, then show or hide each field and set its width. Matched users see a quieter form; everyone else keeps the normal Directus layout.
 
-1. Choose which **roles** (and policies, if you use them) the layout is for  
-2. Drag fields into the order that fits your workflow  
-3. Show or hide each field, and set how wide it appears  
+Open **System Fields Manager** from the left bar (admins only). Layouts only affect **non-admin** users. **Administrators always see the default Studio forms** and are never restricted by these rules.
 
-Matched people then see a quieter form. Everyone else — and all admins — keep the usual Directus layout.
+> **Important:** This changes how the Data Studio *looks*. It does **not** replace Directus permissions. People may still read or write fields through the API if their access control allows it. Use Access Control for real security; use this extension to clean up the editing experience.
 
 ## Features
 
