@@ -8,7 +8,7 @@ Open **System Fields Manager** from the left bar (**admins only**). These layout
 
 ## Overview
 
-<img alt="System Fields Manager — Users layouts list" src="docs/screenshot_system_fields_manager.png" width="800" />
+<img alt="System Fields Manager — Users layouts list" src="https://raw.githubusercontent.com/domdus/directus-extension-system-fields-manager/main/docs/screenshot_system_fields_manager.png" width="800" />
 
 Files and Users come with many built-in fields (storage details, theme options, tokens, and more). For Editors and similar roles that only need a few of them, that can feel noisy.
 
@@ -26,9 +26,9 @@ Matched people then see a quieter form. Everyone else — and all admins — kee
 
 Simplify the user profile / user edit form for selected roles.
 
-<img alt="Users layout editor — drag fields, hide Password, keep custom fields and groups" src="docs/screenshot_user_fields.png" width="800" />
+<img alt="Users layout editor — drag fields, hide Password, keep custom fields and groups" src="https://raw.githubusercontent.com/domdus/directus-extension-system-fields-manager/main/docs/screenshot_user_fields.png" width="800" />
 
-<img alt="User form after applying a custom layout" src="docs/screenshot_user.png" width="800" />
+<img alt="User form after applying a custom layout" src="https://raw.githubusercontent.com/domdus/directus-extension-system-fields-manager/main/docs/screenshot_user.png" width="800" />
 
 - Decide which fields appear (name, email, custom fields, and more)  
 - Put important fields first; tuck the rest away or hide them  
@@ -40,9 +40,9 @@ Simplify the user profile / user edit form for selected roles.
 
 Same idea for the file detail screen — including where the preview sits.
 
-<img alt="Files layout editor — show Title, Tags, Description, and File Preview; hide the rest" src="docs/screenshot_file_fields.png" width="800" />
+<img alt="Files layout editor — show Title, Tags, Description, and File Preview; hide the rest" src="https://raw.githubusercontent.com/domdus/directus-extension-system-fields-manager/main/docs/screenshot_file_fields.png" width="800" />
 
-<img alt="File detail form with a simpler field layout and preview" src="docs/screenshot_file.png" width="800" />
+<img alt="File detail form with a simpler field layout and preview" src="https://raw.githubusercontent.com/domdus/directus-extension-system-fields-manager/main/docs/screenshot_file.png" width="800" />
 
 - Reorder the fields on a file  
 - Show only what your team needs (for example title, tags, and description)  
