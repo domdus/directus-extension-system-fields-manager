@@ -17,6 +17,7 @@ export type FieldLayoutEntry = {
 /** First match wins (list order). Empty roles+policies = catch-all. */
 export type CollectionFieldLayout = {
 	id: string;
+	name?: string;
 	roles: string[];
 	policies: string[];
 	fields: FieldLayoutEntry[];

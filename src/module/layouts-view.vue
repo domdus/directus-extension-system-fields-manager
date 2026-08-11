@@ -41,10 +41,10 @@
 						<v-list-item block dense clickable class="layout-row" @click="openLayoutEditor(collection, element.id)">
 							<v-icon class="drag-handle" name="drag_handle" @click.stop />
 							<v-icon class="icon" name="tune" />
-							<div class="info">
-								<div class="name">Layout</div>
-								<div class="meta">{{ layoutSummary(element) }}</div>
-							</div>
+						<div class="info">
+							<div class="name">{{ element.name || 'Layout' }}</div>
+							<div class="meta">{{ layoutSummary(element) }}</div>
+						</div>
 							<div class="row-actions" @click.stop>
 								<v-button
 									v-tooltip="'Edit layout'"
@@ -75,7 +75,7 @@
 
 		<v-drawer
 			:model-value="isEditingThis"
-			:title="`${title} Layout`"
+			:title="layoutDraft?.name?.trim() ? layoutDraft.name.trim() : `${title} Layout`"
 			icon="tune"
 			@update:model-value="onLayoutDrawerToggle"
 			@cancel="closeLayoutEditor"
@@ -91,6 +91,11 @@
 					First matching layout wins. Leave roles and policies empty for a catch-all (place it last). Admins are
 					never affected. This only changes Studio form layout — not API field permissions.
 				</p>
+
+				<div class="field">
+					<label>Name <span class="optional">(optional)</span></label>
+					<v-input v-model="layoutDraft.name" placeholder="e.g. Editor view, Read-only" />
+				</div>
 
 				<div class="field">
 					<label>Roles</label>
@@ -314,6 +319,13 @@ onMounted(() => {
 	display: block;
 	margin-bottom: 8px;
 	font-weight: 600;
+}
+
+.drawer-content label .optional {
+	font-weight: 400;
+	font-size: 12px;
+	color: var(--theme--foreground-subdued, var(--foreground-subdued, #a2b5cd));
+	margin-left: 4px;
 }
 
 .fields-header {

@@ -190,12 +190,13 @@ export function useSystemFields() {
 		const policyCount = layout.policies?.length ?? 0;
 		const fieldCount = layout.fields?.length ?? 0;
 		const visible = (layout.fields || []).filter((entry) => entry.show !== false).length;
+		const fieldsPart = `${visible}/${fieldCount} fields`;
 
 		if (roleCount === 0 && policyCount === 0) {
-			return `Catch-all · ${visible}/${fieldCount} fields`;
+			return `Catch-all · ${fieldsPart}`;
 		}
 
-		return `${roleCount} role(s) · ${policyCount} polic(ies) · ${visible}/${fieldCount} fields`;
+		return `${roleCount} role(s) · ${policyCount} polic(ies) · ${fieldsPart}`;
 	}
 
 	async function addLayout(collection: SupportedCollection) {
@@ -257,6 +258,7 @@ export function useSystemFields() {
 		const { collection, id } = layoutEditing.value;
 		const next: CollectionFieldLayout = {
 			id,
+			...(layoutDraft.value.name?.trim() ? { name: layoutDraft.value.name.trim() } : {}),
 			roles: [...(layoutDraft.value.roles || [])],
 			policies: [...(layoutDraft.value.policies || [])],
 			fields: (layoutDraft.value.fields || []).map((entry) => ({

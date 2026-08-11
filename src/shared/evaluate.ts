@@ -39,6 +39,7 @@ function normalizeLayout(raw: unknown): CollectionFieldLayout | null {
 
 	return {
 		id: String(item.id),
+		...(item.name ? { name: String(item.name) } : {}),
 		roles: Array.isArray(item.roles) ? item.roles.map(String) : [],
 		policies: Array.isArray(item.policies) ? item.policies.map(String) : [],
 		fields,
