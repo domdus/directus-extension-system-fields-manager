@@ -15,7 +15,7 @@
 		</template>
 
 		<template #sidebar>
-			<sidebar-detail icon="info" title="About" close>
+			<sidebar-detail id="about" icon="info" title="About">
 				<p class="sidebar-text">{{ aboutText }}</p>
 			</sidebar-detail>
 		</template>
