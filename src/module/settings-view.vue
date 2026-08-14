@@ -26,6 +26,7 @@
 			<v-divider
 				class="section-divider"
 				large
+				:inline-title="false"
 				:style="{ '--v-divider-color': 'var(--theme--border-color-subdued)' }"
 			>
 				<template #icon><v-icon name="import_export" /></template>
@@ -62,6 +63,7 @@
 			<v-divider
 				class="section-divider add-margin-top"
 				large
+				:inline-title="false"
 				:style="{ '--v-divider-color': 'var(--theme--border-color-subdued)' }"
 			>
 				<template #icon><v-icon name="delete" /></template>
