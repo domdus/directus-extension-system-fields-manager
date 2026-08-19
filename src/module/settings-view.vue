@@ -18,6 +18,42 @@
 		</template>
 
 		<div :class="pageClass">
+			<v-divider
+				class="section-divider"
+				large
+				:inline-title="false"
+				:style="{ '--v-divider-color': 'var(--theme--border-color-subdued)' }"
+			>
+				<template #icon><v-icon name="system_update" /></template>
+				Extension Updates
+			</v-divider>
+			<p class="explain">
+				Check npm for the latest published version and compare it with the installed extension version.
+			</p>
+			<div class="actions">
+				<v-button secondary :loading="checkingUpdates" @click="checkUpdates(true)">Check now</v-button>
+			</div>
+			<div v-if="updateInfo" class="result">
+				<v-notice :type="updateNoticeType">
+					Current: <strong>{{ updateInfo.current_version }}</strong>
+					<template v-if="updateInfo.latest_version">
+						· Latest: <strong>{{ updateInfo.latest_version }}</strong>
+					</template>
+					<template v-if="updateInfo.error"> · {{ updateInfo.error }}</template>
+					<template v-else-if="updateInfo.has_update"> · Update available</template>
+					<template v-else> · Up to date</template>
+				</v-notice>
+				<p class="links">
+					<a :href="updateInfo.links.npm" target="_blank" rel="noopener noreferrer">npm</a>
+					·
+					<a :href="updateInfo.links.github" target="_blank" rel="noopener noreferrer">GitHub</a>
+					<template v-if="updateInfo.links.marketplace">
+						·
+						<a :href="updateInfo.links.marketplace">Marketplace</a>
+					</template>
+				</p>
+			</div>
+
 			<p class="page-intro">
 				Back up or restore Files/Users field layouts as JSON, or remove the dedicated
 				<code>system_fields</code> settings field before uninstalling. Other project settings are left untouched.
@@ -112,12 +148,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useApi } from '@directus/extensions-sdk';
 import { usePageClass } from './composables/use-page-class';
 import { useSystemFields } from './composables/use-system-fields';
 import ModuleNavigation from './navigation.vue';
 
 const pageClass = usePageClass();
+const api = useApi();
 
 const { loading, cleaning, ensureLoaded, cleanupExtensionData, exportConfig, importConfig } = useSystemFields();
 
@@ -127,10 +165,45 @@ const result = ref<{ clearedValue: boolean; deletedField: boolean } | null>(null
 const importing = ref(false);
 const importMessage = ref<{ type: 'success' | 'danger'; text: string } | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
+const checkingUpdates = ref(false);
+const updateInfo = ref<{
+	current_version: string;
+	latest_version: string | null;
+	has_update: boolean;
+	checked_at: string;
+	error?: string;
+	links: { npm: string; github: string; marketplace: string | null };
+} | null>(null);
+const updateNoticeType = computed(() => {
+	if (!updateInfo.value) return 'info';
+	if (updateInfo.value.error) return 'warning';
+	return updateInfo.value.has_update ? 'warning' : 'success';
+});
 
 onMounted(() => {
 	ensureLoaded();
 });
+
+async function checkUpdates(force: boolean) {
+	checkingUpdates.value = true;
+	try {
+		const res = await api.get('/system-fields-manager/update-check', {
+			params: { force: force ? '1' : undefined },
+		});
+		updateInfo.value = res.data?.data || null;
+	} catch (error: any) {
+		updateInfo.value = {
+			current_version: 'unknown',
+			latest_version: null,
+			has_update: false,
+			checked_at: new Date().toISOString(),
+			error: error?.response?.data?.errors?.[0]?.message || error?.message || 'Update check failed',
+			links: { npm: '#', github: '#', marketplace: null },
+		};
+	} finally {
+		checkingUpdates.value = false;
+	}
+}
 
 function doExport() {
 	importMessage.value = null;
@@ -241,5 +314,10 @@ async function runCleanup() {
 .notice,
 .result {
 	margin-bottom: 16px;
+}
+
+.links {
+	margin: 8px 0 0;
+	font-size: 13px;
 }
 </style>

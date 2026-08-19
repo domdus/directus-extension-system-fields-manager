@@ -45,6 +45,11 @@
 				"source": "src/module/index.ts"
 			},
 			{
+				"type": "endpoint",
+				"name": "system-fields-manager-endpoint",
+				"source": "src/endpoint/index.ts"
+			},
+			{
 				"type": "hook",
 				"name": "system-fields-manager-hook",
 				"source": "src/hook/index.ts"
