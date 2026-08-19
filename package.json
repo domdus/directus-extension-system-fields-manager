@@ -2,7 +2,7 @@
 	"name": "directus-extension-system-fields-manager",
 	"description": "Configure visibility, order, and width of system_fields on Files and Users item forms by role and policy",
 	"icon": "tune",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"license": "MIT",
 	"keywords": [
 		"directus",
