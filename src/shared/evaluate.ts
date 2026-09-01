@@ -47,7 +47,21 @@ function normalizeLayout(raw: unknown): CollectionFieldLayout | null {
 }
 
 export function normalizeConfig(raw: unknown): SystemFieldsConfig {
-	if (!raw || typeof raw !== 'object') {
+	const parsed =
+		typeof raw === 'string'
+			? (() => {
+					const trimmed = raw.trim();
+					if (!trimmed) return null;
+					if (trimmed[0] !== '{' && trimmed[0] !== '[') return raw;
+					try {
+						return JSON.parse(trimmed);
+					} catch {
+						return raw;
+					}
+				})()
+			: raw;
+
+	if (!parsed || typeof parsed !== 'object') {
 		return {
 			version: 1,
 			collections: {
@@ -57,7 +71,7 @@ export function normalizeConfig(raw: unknown): SystemFieldsConfig {
 		};
 	}
 
-	const candidate = raw as Partial<SystemFieldsConfig>;
+	const candidate = parsed as Partial<SystemFieldsConfig>;
 	const collectionsRaw = (candidate.collections || {}) as Partial<SystemFieldsConfig['collections']>;
 
 	const files = Array.isArray(collectionsRaw.directus_files)

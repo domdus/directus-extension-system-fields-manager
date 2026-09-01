@@ -326,6 +326,40 @@ export function useSystemFields() {
 		}
 	}
 
+	async function loadConfigRow(): Promise<Record<string, any>> {
+		try {
+			const response = await api.get('/system-fields-manager/config');
+			const data = response.data?.data;
+			if (data && typeof data === 'object') return data;
+		} catch {
+			// Endpoint missing on an older bundle — fall through to /settings.
+		}
+
+		try {
+			const response = await api.get('/settings', {
+				params: {
+					fields: [SYSTEM_FIELDS_FIELD],
+				},
+			});
+			const data = response.data?.data;
+			return (Array.isArray(data) ? data[0] : data) || {};
+		} catch {
+			// Custom settings fields may be forbidden or deleted.
+			return {};
+		}
+	}
+
+	async function persistConfig(payload: Record<string, unknown>) {
+		try {
+			await api.patch('/system-fields-manager/config', payload);
+			return;
+		} catch {
+			// Older bundle without /config — use settings API.
+		}
+
+		await api.patch('/settings', payload);
+	}
+
 	async function load() {
 		loading.value = true;
 
@@ -336,24 +370,25 @@ export function useSystemFields() {
 		}
 
 		try {
-			const response = await api.get('/settings', {
-				params: {
-					fields: [SYSTEM_FIELDS_FIELD],
-				},
-			});
-
-			const data = response.data?.data;
-			const row = Array.isArray(data) ? data[0] : data;
+			const row = await loadConfigRow();
 			const next = serializeConfig(normalizeConfig(row?.[SYSTEM_FIELDS_FIELD]));
 
 			config.value = next;
 			initialConfig.value = cloneDeep(next);
+		} catch {
+			config.value = cloneDeep(EMPTY_SYSTEM_FIELDS);
+			initialConfig.value = cloneDeep(EMPTY_SYSTEM_FIELDS);
+		}
 
+		try {
 			await Promise.all([
 				loadRolesAndPolicies(),
 				loadSchemaFields('directus_files'),
 				loadSchemaFields('directus_users'),
 			]);
+		} catch {
+			roleOptions.value = [];
+			policyOptions.value = [];
 		} finally {
 			loading.value = false;
 		}
@@ -379,7 +414,7 @@ export function useSystemFields() {
 				[SYSTEM_FIELDS_FIELD]: serializeConfig(config.value),
 			};
 
-			await api.patch('/settings', payload);
+			await persistConfig(payload);
 
 			try {
 				await settingsStore.hydrate?.();
@@ -405,7 +440,7 @@ export function useSystemFields() {
 
 		try {
 			try {
-				await api.patch('/settings', {
+				await persistConfig({
 					[SYSTEM_FIELDS_FIELD]: null,
 				});
 				clearedValue = true;
@@ -487,7 +522,7 @@ export function useSystemFields() {
 
 		config.value = next;
 
-		await api.patch('/settings', {
+		await persistConfig({
 			[SYSTEM_FIELDS_FIELD]: next,
 		});
 
