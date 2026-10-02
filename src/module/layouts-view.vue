@@ -26,15 +26,6 @@
 			</div>
 
 			<template v-else>
-				<v-divider
-					class="section-divider"
-					large
-					:inline-title="false"
-					:style="{ '--v-divider-color': 'var(--theme--border-color-subdued)' }"
-				>
-					<template #icon><v-icon :name="icon" /></template>
-					{{ title }}
-				</v-divider>
 				<p class="page-intro">{{ introText }}</p>
 
 				<draggable v-model="layouts" item-key="id" handle=".drag-handle" :animation="150" class="list">
@@ -240,10 +231,6 @@ onMounted(() => {
 
 .page-container--flush-top {
 	padding-block-start: 0;
-}
-
-.section-divider {
-	margin-bottom: 12px;
 }
 
 .page-intro,
