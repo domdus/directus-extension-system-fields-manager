@@ -2,7 +2,7 @@
 	"name": "directus-extension-system-fields-manager",
 	"description": "Configure visibility, order, and width of system_fields on Files and Users item forms by role and policy",
 	"icon": "tune",
-	"version": "1.0.12",
+	"version": "1.0.13",
 	"license": "MIT",
 	"keywords": [
 		"directus",
@@ -66,13 +66,16 @@
 		"typecheck": "tsc --noEmit -p ."
 	},
 	"devDependencies": {
-		"@directus/extensions-sdk": "^17.0.0",
-		"@directus/types": "^13.0.0",
+		"@directus/extensions-sdk": "^18.1.0",
+		"@directus/types": "^18.1.0",
 		"@types/node": "^20.19.43",
 		"tsx": "^4.23.15",
 		"typescript": "^5.0.0",
-		"vue": "^3.3.7",
+		"vue": "3.5.43",
 		"vue-i18n": "^9.14.5",
 		"vuedraggable": "^4.1.0"
+	},
+	"overrides": {
+		"joi": "18.3.1"
 	}
 }
