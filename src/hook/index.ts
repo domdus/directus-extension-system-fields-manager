@@ -42,9 +42,12 @@ async function resolveUserAccessContext(
 				let current: string | null = startRole;
 
 				for (let depth = 0; depth < 25 && current; depth++) {
-					const row = await database('directus_roles').select('parent').where({ id: current }).first();
+					const row: { parent?: string | null } | undefined = await database('directus_roles')
+						.select('parent')
+						.where({ id: current })
+						.first();
 					if (!row?.parent) break;
-					const parentId = String(row.parent);
+					const parentId: string = String(row.parent);
 					if (roleIds.has(parentId)) break;
 					roleIds.add(parentId);
 					current = parentId;

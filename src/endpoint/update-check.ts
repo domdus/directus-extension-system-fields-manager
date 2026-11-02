@@ -72,6 +72,24 @@ function compareSemver(a: string, b: string): number {
 	}
 	if (!av.prerelease.length && bv.prerelease.length) return 1;
 	if (av.prerelease.length && !bv.prerelease.length) return -1;
+	const pLen = Math.max(av.prerelease.length, bv.prerelease.length);
+	for (let i = 0; i < pLen; i++) {
+		const left = av.prerelease[i];
+		const right = bv.prerelease[i];
+		if (left == null) return -1;
+		if (right == null) return 1;
+		const lNum = /^[0-9]+$/.test(left) ? parseInt(left, 10) : null;
+		const rNum = /^[0-9]+$/.test(right) ? parseInt(right, 10) : null;
+		if (lNum != null && rNum != null) {
+			if (lNum > rNum) return 1;
+			if (lNum < rNum) return -1;
+			continue;
+		}
+		if (lNum != null && rNum == null) return -1;
+		if (lNum == null && rNum != null) return 1;
+		if (left > right) return 1;
+		if (left < right) return -1;
+	}
 	return 0;
 }
 
